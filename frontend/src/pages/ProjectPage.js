@@ -20,7 +20,8 @@ function ProjectPage() {
     title: '',
     description: '',
     priority: 'Medium',
-    dueDate: ''
+    dueDate: '',
+	assignedTo: ''
   });
   const [newMemberEmail, setNewMemberEmail] = useState('');
 
@@ -205,29 +206,58 @@ function ProjectPage() {
                     </span>
                   </div>
                   <p className="task-description">{task.description}</p>
-                  <div className="task-details">
-                    <small>Assigned: {task.assignedTo?.name || 'Unassigned'}</small>
-                    {task.dueDate && <small>Due: {new Date(task.dueDate).toLocaleDateString()}</small>}
-                  </div>
-                  <div className="task-actions">
-                    <select 
-                      value={task.status}
-                      onChange={(e) => handleUpdateTask(task._id, { status: e.target.value })}
-                      className="status-select"
-                    >
-                      <option>To Do</option>
-                      <option>In Progress</option>
-                      <option>Done</option>
-                    </select>
-                    {isAdmin && (
-                      <button 
-                        onClick={() => handleDeleteTask(task._id)}
-                        className="delete-btn"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
+				<div className="task-details">
+					{isAdmin ? (
+						<div className="task-assign-row">
+							<label>Assign To:</label>
+							<select
+								value={task.assignedTo?._id || ''}
+								onChange={(e) =>
+								handleUpdateTask(task._id, { assignedTo: e.target.value || null })
+								}
+								className="assign-select"
+							>
+								<option value="">Unassigned</option>
+								{project.members.map((member) => (
+								<option key={member.userId._id} value={member.userId._id}>
+									{member.userId.name}
+								</option>
+								))}
+							</select>
+						</div>
+					) : (
+						<small>Assigned: {task.assignedTo?.name || 'Unassigned'}</small>
+					)}
+					{task.dueDate && (
+						<small>Due: {new Date(task.dueDate).toLocaleDateString()}</small>
+					)}
+				</div>
+				<div className="task-actions">
+					{(isAdmin || task.assignedTo?._id === user._id) ? (
+						<select
+						value={task.status}
+						onChange={(e) => handleUpdateTask(task._id, { status: e.target.value })}
+						className="status-select"
+						>
+							<option>To Do</option>
+							<option>In Progress</option>
+							<option>Done</option>
+						</select>
+					) : (
+						<span className={`status-badge status-${task.status.toLowerCase().replace(' ', '-')}`}>
+							{task.status}
+						</span>
+					)}
+					{isAdmin && (
+						<button
+						onClick={() => handleDeleteTask(task._id)}
+						className="delete-btn"
+						>
+							Delete
+						</button>
+					)}
+				</div>
+
                 </div>
               ))
             )}
@@ -266,6 +296,20 @@ function ProjectPage() {
                 value={newTaskData.dueDate}
                 onChange={(e) => setNewTaskData({...newTaskData, dueDate: e.target.value})}
               />
+			{project.members.length > 0 && (
+				<select
+					value={newTaskData.assignedTo}
+					onChange={(e) => setNewTaskData({ ...newTaskData, assignedTo: e.target.value })}
+					className="assign-select"
+				>
+					<option value="">Assign To (optional)</option>
+					{project.members.map((member) => (
+						<option key={member.userId._id} value={member.userId._id}>
+							{member.userId.name} ({member.role})
+						</option>
+					))}
+				</select>
+			)}
               <div className="modal-buttons">
                 <button type="submit" className="btn-primary">Create</button>
                 <button type="button" onClick={() => setShowTaskModal(false)} className="btn-secondary">Cancel</button>

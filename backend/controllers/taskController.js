@@ -111,14 +111,21 @@ exports.updateTask = async (req, res) => {
       return res.status(403).json({ message: 'You can only update tasks assigned to you' });
     }
 
-    const { title, description, priority, status, dueDate, assignedTo } = req.body;
-    
-    if (title) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (priority) task.priority = priority;
-    if (status) task.status = status;
-    if (dueDate) task.dueDate = dueDate;
-    if (assignedTo !== undefined) task.assignedTo = assignedTo;
+    // AFTER:
+	const { title, description, priority, status, dueDate, assignedTo } = req.body;
+
+	if (!isAdmin) {
+	// Members can only change status on their own assigned task
+	if (status) task.status = status;
+	} else {
+	// Admins can change everything
+	if (title) task.title = title;
+	if (description !== undefined) task.description = description;
+	if (priority) task.priority = priority;
+	if (status) task.status = status;
+	if (dueDate) task.dueDate = dueDate;
+	if (assignedTo !== undefined) task.assignedTo = assignedTo;
+	}
 
     await task.save();
     await task.populate(['assignedTo', 'createdBy', 'project']);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../utils/api';
@@ -24,11 +24,7 @@ function ProjectPage() {
   });
   const [newMemberEmail, setNewMemberEmail] = useState('');
 
-  useEffect(() => {
-    fetchProjectData();
-  }, [id]);
-
-  const fetchProjectData = async () => {
+  const fetchProjectData = useCallback(async () => {
     try {
       const [projectRes, tasksRes, statsRes] = await Promise.all([
         api.get(`/projects/${id}`),
@@ -43,7 +39,11 @@ function ProjectPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchProjectData();
+  }, [fetchProjectData]);
 
   const handleCreateTask = async (e) => {
     e.preventDefault();

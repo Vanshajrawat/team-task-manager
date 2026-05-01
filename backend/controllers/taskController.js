@@ -10,15 +10,15 @@ exports.createTask = async (req, res) => {
       return res.status(400).json({ message: 'Title and project ID are required' });
     }
 
-    // Check if project exists and user is member
+    // Check if project exists
     const projectDoc = await Project.findById(project);
     if (!projectDoc) {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const isMember = projectDoc.members.some(m => m.userId.toString() === req.userId);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Not authorized to create tasks in this project' });
+    // Check if user is admin of the project (only admins can create tasks)
+    if (projectDoc.admin.toString() !== req.userId) {
+      return res.status(403).json({ message: 'Only project admin can create tasks' });
     }
 
     const task = new Task({
@@ -96,11 +96,19 @@ exports.updateTask = async (req, res) => {
     }
 
     const project = await Project.findById(task.project);
+    
+    // Check if user is member of project
+    const isMember = project.members.some(m => m.userId.toString() === req.userId);
+    if (!isMember) {
+      return res.status(403).json({ message: 'Not authorized - not a project member' });
+    }
+
     const isAdmin = project.admin.toString() === req.userId;
     const isAssigned = task.assignedTo && task.assignedTo.toString() === req.userId;
     
+    // Allow admin to update any task, members can only update assigned tasks
     if (!isAdmin && !isAssigned) {
-      return res.status(403).json({ message: 'Not authorized to update this task' });
+      return res.status(403).json({ message: 'You can only update tasks assigned to you' });
     }
 
     const { title, description, priority, status, dueDate, assignedTo } = req.body;

@@ -7,6 +7,7 @@ import '../styles/Dashboard.css';
 function DashboardPage() {
   const { user, logout } = useContext(AuthContext);
   const [projects, setProjects] = useState([]);
+  const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -22,6 +23,18 @@ function DashboardPage() {
     try {
       const res = await api.get('/projects');
       setProjects(res.data);
+      
+      // Fetch stats for each project
+      const statsMap = {};
+      for (const project of res.data) {
+        try {
+          const statsRes = await api.get(`/tasks/project/${project._id}/stats`);
+          statsMap[project._id] = statsRes.data;
+        } catch (err) {
+          statsMap[project._id] = null;
+        }
+      }
+      setStats(statsMap);
     } catch (err) {
       setError('Failed to fetch projects');
     } finally {
@@ -114,32 +127,64 @@ function DashboardPage() {
           {projects.length === 0 ? (
             <p className="no-projects">No projects yet. Create one to get started!</p>
           ) : (
-            projects.map(project => (
-              <div key={project._id} className="project-card">
-                <h3>{project.name}</h3>
-                <p>{project.description}</p>
-                <div className="project-meta">
-                  <small>Members: {project.members.length}</small>
-                  <small>Role: {project.admin._id === user._id ? 'Admin' : 'Member'}</small>
-                </div>
-                <div className="project-actions">
-                  <button 
-                    onClick={() => navigate(`/project/${project._id}`)}
-                    className="btn-primary"
-                  >
-                    View
-                  </button>
-                  {project.admin._id === user._id && (
+            projects.map(project => {
+              const projectStats = stats[project._id];
+              return (
+                <div key={project._id} className="project-card">
+                  <h3>{project.name}</h3>
+                  <p className="project-desc">{project.description}</p>
+                  
+                  {projectStats ? (
+                    <div className="project-stats">
+                      <div className="stat-item">
+                        <span className="stat-label">Total Tasks</span>
+                        <span className="stat-value">{projectStats.totalTasks}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">To Do</span>
+                        <span className="stat-value">{projectStats.tasksByStatus['To Do']}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">In Progress</span>
+                        <span className="stat-value">{projectStats.tasksByStatus['In Progress']}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Done</span>
+                        <span className="stat-value">{projectStats.tasksByStatus['Done']}</span>
+                      </div>
+                      <div className="stat-item">
+                        <span className="stat-label">Overdue</span>
+                        <span className="stat-value" style={{ color: projectStats.overdueTasks > 0 ? '#d32f2f' : '#4caf50' }}>
+                          {projectStats.overdueTasks}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
+                  
+                  <div className="project-meta">
+                    <small>Members: {project.members.length}</small>
+                    <small>Role: {project.admin._id === user._id ? 'Admin' : 'Member'}</small>
+                  </div>
+                  
+                  <div className="project-actions">
                     <button 
-                      onClick={() => handleDeleteProject(project._id)}
-                      className="btn-danger"
+                      onClick={() => navigate(`/project/${project._id}`)}
+                      className="btn-primary"
                     >
-                      Delete
+                      View
                     </button>
-                  )}
+                    {project.admin._id === user._id && (
+                      <button 
+                        onClick={() => handleDeleteProject(project._id)}
+                        className="btn-danger"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </main>

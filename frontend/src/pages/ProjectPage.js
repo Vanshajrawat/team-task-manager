@@ -42,35 +42,45 @@ function ProjectPage() {
     }
   }, [id]);
 
+  	const refreshStats = async () => {
+		try {
+			const statsRes = await api.get(`/tasks/project/${id}/stats`);
+			setStats(statsRes.data);
+		} catch (err) {
+			console.error('Failed to refresh stats');
+		}
+	};
+
   useEffect(() => {
     fetchProjectData();
   }, [fetchProjectData]);
 
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await api.post('/tasks', {
-        ...newTaskData,
-        project: id
-      });
-      setTasks([...tasks, res.data]);
-      setShowTaskModal(false);
-      setNewTaskData({ title: '', description: '', priority: 'Medium', dueDate: '' });
-      fetchProjectData();
-    } catch (err) {
-      setError('Failed to create task');
-    }
-  };
 
-  const handleUpdateTask = async (taskId, updates) => {
-    try {
-      const res = await api.put(`/tasks/${taskId}`, updates);
-      setTasks(tasks.map(t => t._id === taskId ? res.data : t));
-      fetchProjectData();
-    } catch (err) {
-      setError('Failed to update task');
-    }
-  };
+	const handleCreateTask = async (e) => {
+		e.preventDefault();
+		try {
+			const res = await api.post('/tasks', {
+				...newTaskData,
+				project: id
+			});
+			setTasks([...tasks, res.data]);
+			setShowTaskModal(false);
+			setNewTaskData({ title: '', description: '', priority: 'Medium', dueDate: '', assignedTo: '' });
+			refreshStats();
+		} catch (err) {
+			setError('Failed to create task');
+		}
+	};
+
+	const handleUpdateTask = async (taskId, updates) => {
+		try {
+			const res = await api.put(`/tasks/${taskId}`, updates);
+			setTasks(tasks.map(t => t._id === taskId ? res.data : t));
+			refreshStats();
+		} catch (err) {
+			setError('Failed to update task');
+		}
+	};
 
   const handleDeleteTask = async (taskId) => {
     if (!window.confirm('Delete this task?')) return;
